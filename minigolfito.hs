@@ -52,6 +52,7 @@ putter habilidad = UnTiro {
   altura = 0
 }
 
-
 golpe :: Jugador -> Palo -> Tiro
 golpe jugador palo = palo (habilidad jugador)
+
+

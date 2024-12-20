@@ -145,12 +145,6 @@ BONUS: resolver este problema sin recursividad, teniendo en cuenta que existe un
 +Definir paloMasUtil que recibe una persona y una lista de obstáculos y determina cuál es el palo que le permite superar más obstáculos con un solo tiro.
 
 -}
-
-maximoSegun f = foldl1 (mayorSegun f)
-mayorSegun f a b
-  | f a > f b = a
-  | otherwise = b
-
 palosUtiles :: Jugador -> Obstaculo -> [Palo]
 palosUtiles unJugador unObstaculo = filter (puedeSuperar unJugador unObstaculo) palos
 
@@ -170,10 +164,14 @@ tiro1 = UnTiro {
   altura = 0
 }
 
---paloMasUtil :: Jugador -> [Obstaculo] -> Palo
---paloMasUtil unJugador unosObstaculos = find (esMasUtil unJugador unosObstaculos) palos
+maximoSegun :: Ord a1 => (a2 -> a1) -> [a2] -> a2
+maximoSegun f = foldl1 (mayorSegun f)
 
---esMasUtil :: Jugador -> [Obstaculo] -> Palo -> Bool
---esMasUtil unJugador unosObstaculos unPalo 
+mayorSegun :: Ord a => (t -> a) -> (t -> t -> t)
+mayorSegun f a b
+  | f a > f b = a
+  | otherwise = b
 
 
+paloMasUtil :: Jugador -> [Obstaculo] -> Palo
+paloMasUtil unJugador unosObstaculos = maximoSegun (obstaculosConsecutivos unosObstaculos.golpe unJugador) palos

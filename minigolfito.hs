@@ -1,3 +1,8 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Eta reduce" #-}
+{-# HLINT ignore "Avoid lambda using `infix`" #-}
+
+import Text.Show.Functions
 -- Modelo inicial
 data Jugador = UnJugador {
   nombre :: String,
@@ -17,24 +22,6 @@ rafa = UnJugador "Rafa" "Gorgory" (Habilidad 10 1)
 
 
 type Puntos = Int
-
--- Funciones útiles
-between n m x = elem x [n .. m]
-
-maximoSegun f = foldl1 (mayorSegun f)
-mayorSegun f a b
-  | f a > f b = a
-  | otherwise = b
-
-
---modelar un palo de golf
-{-
-
-data Obstaculo = UnObstaculo {
-  nombreObstaculo :: String,
-  superable :: (Tiro -> Bool)
-} deriving (Eq, Show)
--}
 
 --Punto 1
 {-
@@ -69,13 +56,15 @@ madera habilidad = UnTiro {
   altura = 5
 }
 
---hierros :: Palo
---hierros habilidad = UnTiro {
-  
---}
+hierro :: Int -> Palo
+hierro n habilidad = UnTiro {
+  velocidad = fuerzaJugador habilidad * n,
+  precision = div (precisionJugador habilidad) n,
+  altura = max (n-3) 0
+}
 
 palos :: [Palo]
-palos = [putter, madera]
+palos = [putter, madera] ++ map hierro [1..10]
 
 --Punto 2
 {-
@@ -100,11 +89,51 @@ Se desea saber cómo queda un tiro luego de intentar superar un obstáculo, teni
 
 -}
 
-tunel :: Tiro -> Tiro
-tunel unTiro = unTiro{
+tiroNulo :: Tiro
+tiroNulo = UnTiro {velocidad = 0, precision = 0, altura = 0}
+ 
+data Obstaculo = Obstaculo{
+requisitosObstaculo :: Tiro -> Bool,
+efectoObstaculo :: Tiro -> Tiro
+} deriving(Show, Eq)
+
+type Obstaculo = Tiro -> Tiro
   
-}
+tunel :: Obstaculo
+tunel unTiro 
+  |((>90).precision $ unTiro) && ((==0).altura $ unTiro) = UnTiro{velocidad= velocidad unTiro, precision = 100, altura = 0}
+  |otherwise = tiroNulo
 
+between n m x = elem x [n .. m]
 
+laguna :: Int -> Obstaculo
+laguna largo unTiro 
+  |((>80).velocidad $ unTiro) && (between 1 5 (altura unTiro)) = UnTiro {velocidad = velocidad unTiro,precision = precision unTiro, altura = div (altura unTiro) largo}
+  |otherwise = tiroNulo
 
+--tiro nulo siempre, no importa si logro o no
+hoyo :: Obstaculo
+hoyo unTiro = tiroNulo
 
+--Punto 4
+{-
++Definir palosUtiles que dada una persona y un obstáculo, permita determinar qué palos le sirven para superarlo.
+
++Saber, a partir de un conjunto de obstáculos y un tiro, cuántos obstáculos consecutivos se pueden superar.
+Por ejemplo, para un tiro de velocidad = 10, precisión = 95 y altura = 0, y una lista con dos túneles con rampita seguidos de un hoyo, el resultado sería 2 ya que la velocidad al salir del segundo túnel es de 40, por ende no supera el hoyo.
+BONUS: resolver este problema sin recursividad, teniendo en cuenta que existe una función takeWhile :: (a -> Bool) -> [a] -> [a] que podría ser de utilidad.
+
++Definir paloMasUtil que recibe una persona y una lista de obstáculos y determina cuál es el palo que le permite superar más obstáculos con un solo tiro.
+
+-}
+
+maximoSegun f = foldl1 (mayorSegun f)
+mayorSegun f a b
+  | f a > f b = a
+  | otherwise = b
+
+palosUtiles :: Jugador -> Obstaculo -> [Palo]
+palosUtiles unJugador unObstaculo = filter (puedeSuperar unJugador unObstaculo) palos
+
+puedeSuperar :: Jugador -> Obstaculo -> Palo -> Bool
+puedeSuperar unJugador unObstaculo unPalo = golpe unJugador unPalo

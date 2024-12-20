@@ -95,25 +95,44 @@ tiroNulo = UnTiro {velocidad = 0, precision = 0, altura = 0}
 data Obstaculo = Obstaculo{
 requisitosObstaculo :: Tiro -> Bool,
 efectoObstaculo :: Tiro -> Tiro
-} deriving(Show, Eq)
+} deriving(Show)
 
-type Obstaculo = Tiro -> Tiro
+intentarSuperarObstaculo :: Obstaculo -> Tiro -> Tiro
+intentarSuperarObstaculo unObstaculo unTiro 
+  |requisitosObstaculo unObstaculo unTiro = efectoObstaculo unObstaculo unTiro
+  |otherwise = tiroNulo
   
 tunel :: Obstaculo
-tunel unTiro 
-  |((>90).precision $ unTiro) && ((==0).altura $ unTiro) = UnTiro{velocidad= velocidad unTiro, precision = 100, altura = 0}
-  |otherwise = tiroNulo
+tunel = Obstaculo{requisitosObstaculo = requisitoTunel, efectoObstaculo= efectoTunel}
+
+requisitoTunel :: Tiro -> Bool
+requisitoTunel unTiro = ((>90).precision $ unTiro) && ((==0).altura $ unTiro) 
+efectoTunel :: Tiro -> Tiro
+efectoTunel unTiro = UnTiro{velocidad= velocidad unTiro * 2, precision = 100, altura = 0}
 
 between n m x = elem x [n .. m]
 
 laguna :: Int -> Obstaculo
-laguna largo unTiro 
-  |((>80).velocidad $ unTiro) && (between 1 5 (altura unTiro)) = UnTiro {velocidad = velocidad unTiro,precision = precision unTiro, altura = div (altura unTiro) largo}
-  |otherwise = tiroNulo
+laguna largo = Obstaculo {requisitosObstaculo = requisitoLaguna, efectoObstaculo = efectoLaguna largo}
 
---tiro nulo siempre, no importa si logro o no
+requisitoLaguna :: Tiro -> Bool
+requisitoLaguna unTiro = ((>80).velocidad $ unTiro) && (between 1 5 (altura unTiro)) 
+efectoLaguna :: Int -> Tiro -> Tiro
+efectoLaguna largo unTiro = UnTiro {velocidad = velocidad unTiro,precision = precision unTiro, altura = div (altura unTiro) largo}
+
+
 hoyo :: Obstaculo
-hoyo unTiro = tiroNulo
+hoyo = Obstaculo {requisitosObstaculo = requisitosHoyo ,efectoObstaculo = efectoHoyo}
+
+--Un hoyo se supera si la velocidad del tiro está entre 5 y 20 m/s yendo al ras del suelo con una precisión mayor a 95. Al superar el hoyo, el tiro se detiene, quedando con todos sus componentes en 0.
+requisitosHoyo :: Tiro -> Bool
+requisitosHoyo unTiro = between 5 20 (velocidad unTiro) && precision unTiro > 95 && vaAlRasDelSuelo unTiro
+efectoHoyo :: Tiro -> Tiro
+efectoHoyo unTiro = tiroNulo
+
+vaAlRasDelSuelo :: Tiro -> Bool
+vaAlRasDelSuelo unTiro = (==0).altura $ unTiro
+
 
 --Punto 4
 {-
@@ -136,4 +155,25 @@ palosUtiles :: Jugador -> Obstaculo -> [Palo]
 palosUtiles unJugador unObstaculo = filter (puedeSuperar unJugador unObstaculo) palos
 
 puedeSuperar :: Jugador -> Obstaculo -> Palo -> Bool
-puedeSuperar unJugador unObstaculo unPalo = golpe unJugador unPalo
+puedeSuperar unJugador unObstaculo unPalo = requisitosObstaculo unObstaculo (golpe unJugador unPalo)
+
+obstaculosConsecutivos :: [Obstaculo] -> Tiro -> Int
+obstaculosConsecutivos [] _ = 0
+obstaculosConsecutivos (x:xs) unTiro
+  |requisitosObstaculo x unTiro = 1 + obstaculosConsecutivos xs (efectoObstaculo x unTiro)
+  |otherwise = 0
+
+tiro1 :: Tiro
+tiro1 = UnTiro {
+  velocidad = 10,
+  precision = 95,
+  altura = 0
+}
+
+--paloMasUtil :: Jugador -> [Obstaculo] -> Palo
+--paloMasUtil unJugador unosObstaculos = find (esMasUtil unJugador unosObstaculos) palos
+
+--esMasUtil :: Jugador -> [Obstaculo] -> Palo -> Bool
+--esMasUtil unJugador unosObstaculos unPalo 
+
+
